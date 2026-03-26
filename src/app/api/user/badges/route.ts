@@ -10,7 +10,7 @@ export async function GET() {
   const badges = await prisma.userBadge.findMany({
     where: { userId },
     include: { badge: true },
-    orderBy: { earnedAt: 'desc' },
+    orderBy: { awardedAt: 'desc' },
   })
   return NextResponse.json({ badges })
 }

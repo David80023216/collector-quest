@@ -3,8 +3,9 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { redirect } from 'next/navigation'
 import { Session } from 'next-auth'
 
-export interface AuthSession extends Session {
+export interface AuthSession {
   user: { id: string; name?: string | null; email?: string | null; image?: string | null; role?: string; plan?: string }
+  expires: string
 }
 
 export async function requireAuth(): Promise<AuthSession> {

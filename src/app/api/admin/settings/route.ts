@@ -10,7 +10,7 @@ async function isAdmin(session: any) {
 export async function GET() {
   const session = await getServerSession(authOptions)
   if (!(await isAdmin(session))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const settings = await prisma.appSetting.findMany({ orderBy: { key: 'asc' } })
+  const settings = await prisma.adminSetting.findMany({ orderBy: { key: 'asc' } })
   return NextResponse.json({ settings })
 }
 
@@ -18,6 +18,6 @@ export async function PATCH(req: NextRequest) {
   const session = await getServerSession(authOptions)
   if (!(await isAdmin(session))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   const { key, value } = await req.json()
-  const setting = await prisma.appSetting.update({ where: { key }, data: { value } })
+  const setting = await prisma.adminSetting.update({ where: { key }, data: { value } })
   return NextResponse.json({ setting })
 }
