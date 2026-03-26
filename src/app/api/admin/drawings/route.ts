@@ -31,3 +31,36 @@ export async function POST(req: NextRequest) {
   })
   return NextResponse.json({ drawing })
 }
+
+export async function PATCH(req: NextRequest) {
+  const session = await getServerSession(authOptions)
+  if (!(await isAdmin(session))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const {
+    id,
+    cardTitle,
+    cardPlayer,
+    cardYear,
+    cardBrand,
+    cardGrade,
+    cardNumber,
+    cardImageUrl,
+  } = await req.json()
+
+  if (!id) return NextResponse.json({ error: 'Drawing id required' }, { status: 400 })
+
+  const drawing = await prisma.drawing.update({
+    where: { id },
+    data: {
+      cardTitle: cardTitle || null,
+      cardPlayer: cardPlayer || null,
+      cardYear: cardYear || null,
+      cardBrand: cardBrand || null,
+      cardGrade: cardGrade || null,
+      cardNumber: cardNumber || null,
+      cardImageUrl: cardImageUrl || null,
+    },
+  })
+
+  return NextResponse.json({ drawing })
+}
