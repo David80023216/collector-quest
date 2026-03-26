@@ -116,6 +116,7 @@ model User {
   userBadges             UserBadge[]
   storeRedemptions       StoreRedemption[]
   drawingWins            DrawingWinner[]
+  drawingEntries         DrawingEntry[]
   drawingsWon            Drawing[]             @relation("DrawingWinner")
 
   @@index([email])
@@ -524,11 +525,27 @@ model Drawing {
 
   winner  User?           @relation("DrawingWinner", fields: [winnerId], references: [id], onDelete: SetNull)
   winners DrawingWinner[]
+  entries DrawingEntry[]
   prizes  Prize[]
 
   @@index([status])
   @@index([drawDate])
   @@index([winnerId])
+}
+
+model DrawingEntry {
+  id          String   @id @default(cuid())
+  drawingId   String
+  userId      String
+  ticketsUsed Int      @default(1)
+  enteredAt   DateTime @default(now())
+
+  drawing Drawing @relation(fields: [drawingId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([drawingId])
+  @@index([userId])
+  @@unique([drawingId, userId])
 }
 
 model DrawingWinner {

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import AppLayout from '@/components/layout/AppLayout'
 import Button from '@/components/ui/Button'
 import { useSession } from 'next-auth/react'
@@ -9,6 +9,19 @@ export default function PrizesPage() {
   const { data: session } = useSession()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+
+  // Entry state
+  const [ticketInput, setTicketInput] = useState(1)
+  const [entering, setEntering] = useState(false)
+  const [entryResult, setEntryResult] = useState<{ success: boolean; message: string; remainingTickets?: number; totalEntries?: number } | null>(null)
+  const [userTickets, setUserTickets] = useState<number | null>(null)
+
+  // Entrants state
+  const [entrants, setEntrants] = useState<any[]>([])
+  const [totalTickets, setTotalTickets] = useState(0)
+  const [entrantsLoading, setEntrantsLoading] = useState(false)
+
+  // Free entry state
   const [freeForm, setFreeForm] = useState({ name: '', email: '' })
   const [freeSubmitting, setFreeSubmitting] = useState(false)
   const [freeResult, setFreeResult] = useState<{ success: boolean; message: string } | null>(null)
@@ -16,6 +29,57 @@ export default function PrizesPage() {
   useEffect(() => {
     fetch('/api/prizes').then(r => r.json()).then(d => { setData(d); setLoading(false) })
   }, [])
+
+  // Load user ticket balance
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/user').then(r => r.json()).then(d => setUserTickets(d.entries ?? 0))
+    }
+  }, [session])
+
+  const loadEntrants = useCallback((drawingId?: string) => {
+    setEntrantsLoading(true)
+    const url = drawingId ? `/api/drawings/entrants?drawingId=${drawingId}` : '/api/drawings/entrants'
+    fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        setEntrants(d.entrants ?? [])
+        setTotalTickets(d.totalTickets ?? 0)
+      })
+      .finally(() => setEntrantsLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (data) {
+      const drawingId = data.upcomingDrawings?.[0]?.id
+      loadEntrants(drawingId)
+    }
+  }, [data, loadEntrants])
+
+  async function enterDrawing(drawingId: string) {
+    if (!ticketInput || ticketInput < 1) return
+    setEntering(true)
+    setEntryResult(null)
+    const res = await fetch('/api/drawings/enter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drawingId, tickets: ticketInput }),
+    })
+    const d = await res.json()
+    if (d.success) {
+      setUserTickets(d.remainingTickets)
+      setEntryResult({
+        success: true,
+        message: `🎟️ You're in! ${ticketInput} ticket${ticketInput !== 1 ? 's' : ''} entered. You now have ${d.totalEntries} total ticket${d.totalEntries !== 1 ? 's' : ''} in this drawing.`,
+        remainingTickets: d.remainingTickets,
+        totalEntries: d.totalEntries,
+      })
+      loadEntrants(drawingId)
+    } else {
+      setEntryResult({ success: false, message: d.error ?? 'Failed to enter' })
+    }
+    setEntering(false)
+  }
 
   async function submitFreeEntry(e: React.FormEvent) {
     e.preventDefault()
@@ -37,6 +101,7 @@ export default function PrizesPage() {
 
   const { grandPrize, prizes, recentWinners, upcomingDrawings } = data ?? {}
   const featured = upcomingDrawings?.[0]
+  const myEntry = entrants.find((e: any) => e.name === session?.user?.name)
 
   return (
     <AppLayout>
@@ -49,33 +114,23 @@ export default function PrizesPage() {
         {/* ── FEATURED CARD SHOWCASE ── */}
         {featured && (featured.cardImageUrl || featured.cardPlayer) && (
           <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-            {/* Background glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-yellow-600/10 pointer-events-none" />
-
             <div className="relative flex flex-col md:flex-row gap-0">
-              {/* Card Image Panel */}
+              {/* Card Image */}
               <div className="md:w-72 flex-shrink-0 flex items-center justify-center p-8 bg-gradient-to-b from-slate-800/60 to-slate-900/60 md:border-r border-slate-700/50">
                 {featured.cardImageUrl ? (
                   <div className="relative group">
-                    {/* PSA slab effect */}
                     <div className="absolute -inset-3 bg-gradient-to-b from-yellow-400/20 to-amber-600/20 rounded-xl blur-md group-hover:blur-lg transition-all" />
                     <div className="relative rounded-lg overflow-hidden shadow-2xl border-4 border-amber-400/30 bg-slate-900"
                          style={{ width: 200, height: 280 }}>
-                      {/* PSA label bar */}
                       <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-r from-blue-800 to-blue-900 flex items-center justify-center z-10">
                         <span className="text-white text-xs font-black tracking-widest">PSA</span>
                         <span className="ml-1 bg-amber-400 text-slate-900 text-xs font-black px-1.5 py-0.5 rounded">{featured.cardGrade?.replace('PSA ', '') || '10'}</span>
                       </div>
-                      <img
-                        src={featured.cardImageUrl}
-                        alt={featured.cardTitle || 'Prize Card'}
-                        className="w-full h-full object-cover"
-                        style={{ paddingTop: 28 }}
-                      />
-                      {/* Bottom bar */}
+                      <img src={featured.cardImageUrl} alt={featured.cardTitle || 'Prize Card'}
+                           className="w-full h-full object-cover" style={{ paddingTop: 28 }} />
                       <div className="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-r from-blue-800 to-blue-900" />
                     </div>
-                    {/* Shine overlay */}
                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent rounded-lg pointer-events-none" />
                   </div>
                 ) : (
@@ -85,7 +140,7 @@ export default function PrizesPage() {
                 )}
               </div>
 
-              {/* Card Details Panel */}
+              {/* Card Details + Entry */}
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start justify-between gap-3 mb-4">
@@ -95,17 +150,11 @@ export default function PrizesPage() {
                           🎯 THIS MONTH'S PRIZE
                         </span>
                         {featured.status === 'UPCOMING' && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                            Drawing Open
-                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Drawing Open</span>
                         )}
                       </div>
-                      <h2 className="text-xl font-black text-slate-100 mt-2 leading-tight">
-                        {featured.cardPlayer || featured.title}
-                      </h2>
-                      {featured.cardTitle && (
-                        <p className="text-sm text-slate-400 mt-0.5">{featured.cardTitle}</p>
-                      )}
+                      <h2 className="text-xl font-black text-slate-100 mt-2 leading-tight">{featured.cardPlayer || featured.title}</h2>
+                      {featured.cardTitle && <p className="text-sm text-slate-400 mt-0.5">{featured.cardTitle}</p>}
                     </div>
                     {featured.prizeValue > 0 && (
                       <div className="text-right flex-shrink-0">
@@ -115,7 +164,6 @@ export default function PrizesPage() {
                     )}
                   </div>
 
-                  {/* Card Details Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
                     {featured.cardYear && (
                       <div className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50">
@@ -147,39 +195,180 @@ export default function PrizesPage() {
                     <p className="text-sm text-slate-400 mb-5">
                       🗓️ Drawing on{' '}
                       <span className="text-slate-200 font-medium">
-                        {new Date(featured.drawDate).toLocaleDateString('en-US', {
-                          month: 'long', day: 'numeric', year: 'numeric'
-                        })}
+                        {new Date(featured.drawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                       </span>
                     </p>
                   )}
                 </div>
 
-                {/* CTA Buttons */}
-                <div className="flex flex-wrap gap-3">
-                  {session ? (
-                    <Link href="/dashboard">
-                      <Button variant="primary" className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold">
-                        🎟️ Earn More Entries
+                {/* ── ENTRY SECTION ── */}
+                {session ? (
+                  <div className="bg-slate-800/80 rounded-xl border border-slate-600/60 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-slate-200">🎟️ Enter This Drawing</p>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Your tickets</p>
+                        <p className="text-lg font-black text-amber-400">{userTickets ?? '...'}</p>
+                      </div>
+                    </div>
+
+                    {myEntry && (
+                      <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg px-3 py-2">
+                        <span className="text-emerald-400 text-sm">✅ Already entered</span>
+                        <span className="text-slate-400 text-sm">· {myEntry.tickets} ticket{myEntry.tickets !== 1 ? 's' : ''} ({myEntry.pct}% chance)</span>
+                      </div>
+                    )}
+
+                    {entryResult && (
+                      <div className={`rounded-lg px-3 py-2 text-sm ${entryResult.success ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+                        {entryResult.message}
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <div className="flex items-center gap-2 flex-1">
+                        <button
+                          onClick={() => setTicketInput(t => Math.max(1, t - 1))}
+                          className="w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold flex items-center justify-center"
+                        >−</button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={userTickets ?? 999}
+                          value={ticketInput}
+                          onChange={e => setTicketInput(Math.max(1, Math.min(userTickets ?? 999, parseInt(e.target.value) || 1)))}
+                          className="w-16 text-center bg-slate-700 border border-slate-600 rounded-lg px-2 py-1.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                        />
+                        <button
+                          onClick={() => setTicketInput(t => Math.min(userTickets ?? 999, t + 1))}
+                          className="w-8 h-8 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold flex items-center justify-center"
+                        >+</button>
+                        {userTickets !== null && userTickets > 0 && (
+                          <button
+                            onClick={() => setTicketInput(userTickets)}
+                            className="text-xs text-amber-400 hover:text-amber-300 underline underline-offset-2"
+                          >All in</button>
+                        )}
+                      </div>
+                      <Button
+                        onClick={() => enterDrawing(featured.id)}
+                        loading={entering}
+                        disabled={entering || !userTickets || userTickets < 1}
+                        variant="primary"
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold whitespace-nowrap"
+                      >
+                        Enter {ticketInput > 1 ? `${ticketInput} Tickets` : 'Drawing'}
                       </Button>
-                    </Link>
-                  ) : (
+                    </div>
+
+                    {userTickets === 0 && (
+                      <p className="text-xs text-slate-400">
+                        No tickets yet —{' '}
+                        <Link href="/dashboard" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+                          earn some on the dashboard
+                        </Link>
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
                     <Link href="/auth/signup">
                       <Button variant="primary" className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold">
                         🚀 Sign Up to Enter
                       </Button>
                     </Link>
-                  )}
-                  <a href="#free-entry">
-                    <Button variant="outline" className="border-slate-600 text-slate-300 hover:border-slate-500">
-                      Free Entry ↓
-                    </Button>
-                  </a>
-                </div>
+                    <a href="#free-entry">
+                      <Button variant="outline" className="border-slate-600 text-slate-300 hover:border-slate-500">
+                        Free Entry ↓
+                      </Button>
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         )}
+
+        {/* ── ENTRANT LEADERBOARD ── */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+            <div>
+              <h2 className="font-semibold text-slate-100">Current Entrants</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {totalTickets} total ticket{totalTickets !== 1 ? 's' : ''} entered · {entrants.length} entrant{entrants.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+            <button
+              onClick={() => loadEntrants(featured?.id)}
+              className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+            >
+              {entrantsLoading ? '⏳' : '🔄'} Refresh
+            </button>
+          </div>
+
+          {entrantsLoading ? (
+            <div className="py-8 text-center text-slate-500 text-sm">Loading entrants...</div>
+          ) : entrants.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-3xl mb-2">🎟️</p>
+              <p className="text-slate-400 text-sm">No entries yet — be the first!</p>
+              {!session && (
+                <Link href="/auth/signup" className="text-amber-400 text-sm hover:text-amber-300 mt-1 block underline underline-offset-2">
+                  Sign up to enter
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-700/60">
+              {entrants.map((e: any) => {
+                const isMe = session?.user?.name === e.name
+                return (
+                  <div key={e.name + e.rank} className={`flex items-center gap-4 px-5 py-3 ${isMe ? 'bg-amber-500/5' : ''}`}>
+                    {/* Rank */}
+                    <span className={`w-7 text-center text-sm font-bold ${e.rank === 1 ? 'text-amber-400' : e.rank === 2 ? 'text-slate-300' : e.rank === 3 ? 'text-amber-600' : 'text-slate-500'}`}>
+                      {e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : `#${e.rank}`}
+                    </span>
+
+                    {/* Avatar */}
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {e.image ? (
+                        <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-white">{e.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+
+                    {/* Name */}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium truncate ${isMe ? 'text-amber-400' : 'text-slate-100'}`}>
+                        {e.name} {isMe && <span className="text-xs">(you)</span>}
+                      </p>
+                    </div>
+
+                    {/* Odds bar */}
+                    <div className="hidden sm:flex items-center gap-2 w-32">
+                      <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${isMe ? 'bg-amber-400' : 'bg-slate-500'}`}
+                          style={{ width: `${Math.max(e.pct, 2)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-slate-400 w-8 text-right">{e.pct}%</span>
+                    </div>
+
+                    {/* Tickets */}
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-sm font-bold ${isMe ? 'text-amber-400' : 'text-slate-200'}`}>
+                        {e.tickets.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-slate-500">ticket{e.tickets !== 1 ? 's' : ''}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* ── GRAND PRIZE TIER ── */}
         {grandPrize && (
@@ -196,54 +385,9 @@ export default function PrizesPage() {
                 <div className="text-right">
                   <p className="text-xs text-slate-500">Next tier unlocks at</p>
                   <p className="text-lg font-bold text-slate-300">${grandPrize.nextTier.prizeValue.toLocaleString()}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    🚀 {grandPrize.nextTier.subscribersNeeded} more PRO members needed
-                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">🚀 {grandPrize.nextTier.subscribersNeeded} more PRO members needed</p>
                 </div>
               )}
-            </div>
-          </div>
-        )}
-
-        {/* ── OTHER UPCOMING DRAWINGS ── */}
-        {upcomingDrawings?.length > 1 && (
-          <div>
-            <h2 className="text-lg font-semibold text-slate-200 mb-3">More Drawings</h2>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {upcomingDrawings.slice(1).map((d: any) => (
-                <div key={d.id} className="bg-slate-800 rounded-xl border border-slate-700 p-5">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-slate-100">{d.title}</h3>
-                    <span className={`text-xs px-2 py-1 rounded-full ${d.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400'}`}>
-                      {d.status}
-                    </span>
-                  </div>
-                  {d.description && <p className="text-sm text-slate-400 mb-3">{d.description}</p>}
-                  <p className="text-amber-400 font-bold">🏆 {d.prizeDescription}</p>
-                  {d.drawDate && (
-                    <p className="text-xs text-slate-500 mt-2">
-                      Drawing: {new Date(d.drawDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── PRIZE CATALOG ── */}
-        {prizes?.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-slate-200 mb-3">Prize Catalog</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {prizes.map((p: any) => (
-                <div key={p.id} className="bg-slate-800 rounded-xl border border-slate-700 p-4">
-                  <div className="text-3xl mb-2">🎁</div>
-                  <h3 className="font-medium text-slate-100 mb-1">{p.title}</h3>
-                  {p.description && <p className="text-xs text-slate-400 mb-2">{p.description}</p>}
-                  <p className="text-amber-400 text-sm font-bold">{p.value}</p>
-                </div>
-              ))}
             </div>
           </div>
         )}
@@ -303,7 +447,6 @@ export default function PrizesPage() {
             </form>
           )}
         </div>
-
       </div>
     </AppLayout>
   )
