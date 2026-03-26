@@ -17,7 +17,8 @@ const navItems = [
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { data: session } = useSession()
   const pathname = usePathname()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -51,26 +52,28 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 ⭐ PRO
               </span>
             )}
-            <div className="relative">
+
+            {/* Avatar dropdown — desktop */}
+            <div className="relative hidden md:block">
               <button
-                onClick={() => setMenuOpen(p => !p)}
+                onClick={() => setDropdownOpen(p => !p)}
                 className="w-9 h-9 rounded-full bg-amber-500/20 text-amber-400 font-bold text-sm flex items-center justify-center hover:bg-amber-500/30 transition-colors"
               >
                 {session?.user?.name?.[0]?.toUpperCase() ?? 'U'}
               </button>
-              {menuOpen && (
+              {dropdownOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
                   <div className="absolute right-0 top-11 w-48 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-20 py-1">
                     <div className="px-4 py-2.5 border-b border-slate-700">
                       <p className="text-sm font-medium text-slate-100 truncate">{session?.user?.name}</p>
                       <p className="text-xs text-slate-400 truncate">{session?.user?.email}</p>
                     </div>
-                    <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700/50">
+                    <Link href="/profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700/50">
                       👤 Profile
                     </Link>
                     {session?.user?.role === 'ADMIN' && (
-                      <Link href="/admin" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-purple-400 hover:bg-slate-700/50">
+                      <Link href="/admin" onClick={() => setDropdownOpen(false)} className="flex items-center gap-2 px-4 py-2.5 text-sm text-purple-400 hover:bg-slate-700/50">
                         🛠 Admin
                       </Link>
                     )}
@@ -85,21 +88,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               )}
             </div>
 
-            {/* Mobile menu button */}
-            <button className="md:hidden text-slate-400 hover:text-slate-100 p-1" onClick={() => setMenuOpen(p => !p)}>
-              ☰
+            {/* Mobile hamburger */}
+            <button
+              className="md:hidden text-slate-400 hover:text-slate-100 p-1"
+              onClick={() => setMobileOpen(p => !p)}
+            >
+              {mobileOpen ? '✕' : '☰'}
             </button>
           </div>
         </div>
 
-        {/* Mobile nav */}
-        {menuOpen && (
+        {/* Mobile nav drawer */}
+        {mobileOpen && (
           <div className="md:hidden border-t border-slate-700/50 bg-slate-900 px-4 py-3 space-y-1">
             {navItems.map(item => (
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors
                   ${pathname === item.href ? 'bg-amber-500/10 text-amber-400' : 'text-slate-400 hover:text-slate-100'}`}
               >
@@ -107,6 +113,26 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <span>{item.label}</span>
               </Link>
             ))}
+            {/* Mobile account section */}
+            <div className="border-t border-slate-700/50 mt-2 pt-2 space-y-1">
+              <div className="px-3 py-1.5">
+                <p className="text-xs text-slate-500">{session?.user?.email}</p>
+              </div>
+              <Link href="/profile" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-slate-100 hover:bg-slate-700/50">
+                👤 Profile
+              </Link>
+              {session?.user?.role === 'ADMIN' && (
+                <Link href="/admin" onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-purple-400 hover:bg-slate-700/50">
+                  🛠 Admin Panel
+                </Link>
+              )}
+              <button
+                onClick={() => signOut({ callbackUrl: '/' })}
+                className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:bg-slate-700/50"
+              >
+                ↩ Sign Out
+              </button>
+            </div>
           </div>
         )}
       </nav>
