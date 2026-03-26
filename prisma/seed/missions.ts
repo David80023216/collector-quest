@@ -204,26 +204,10 @@ export async function seedMissions(prisma: PrismaClient) {
     { rotationDay: 180, title: 'End of Cycle Splurge', description: 'The rotation cycle ends here! Celebrate by redeeming something big from the store.', category: MissionCategory.REDEMPTION_ACTION, difficulty: MissionDifficulty.HARD, entriesReward: 5, pointsReward: 20, packReward: true, contributionValue: 3 },
   ]
 
-  for (const m of dailyMissions) {
-    await prisma.mission.upsert({
-      where: { rotationDay: m.rotationDay },
-      update: {
-        title: m.title,
-        description: m.description,
-        category: m.category,
-        difficulty: m.difficulty,
-        scope: MissionScope.DAILY,
-        entriesReward: m.entriesReward,
-        pointsReward: m.pointsReward,
-        packReward: m.packReward,
-        contributionValue: m.contributionValue,
-      },
-      create: {
-        ...m,
-        scope: MissionScope.DAILY,
-      },
-    })
-  }
+  await prisma.mission.deleteMany({ where: { scope: MissionScope.DAILY } })
+  await prisma.mission.createMany({
+    data: dailyMissions.map(m => ({ ...m, scope: MissionScope.DAILY })),
+  })
   console.log(`    ✅ Seeded ${dailyMissions.length} daily missions`)
 
   // ─── 5. Weekly Missions (26) ──────────────────────────────────────────
@@ -258,25 +242,9 @@ export async function seedMissions(prisma: PrismaClient) {
     { rotationWeek: 26, title: 'The Final Push', description: 'Complete 20 missions in the final week of the rotation. Give it everything you\'ve got!', category: MissionCategory.LOGIN_CLAIM, difficulty: MissionDifficulty.HARD, entriesReward: 15, pointsReward: 50, packReward: true, contributionValue: 10 },
   ]
 
-  for (const m of weeklyMissions) {
-    await prisma.mission.upsert({
-      where: { rotationWeek: m.rotationWeek },
-      update: {
-        title: m.title,
-        description: m.description,
-        category: m.category,
-        difficulty: m.difficulty,
-        scope: MissionScope.WEEKLY,
-        entriesReward: m.entriesReward,
-        pointsReward: m.pointsReward,
-        packReward: m.packReward,
-        contributionValue: m.contributionValue,
-      },
-      create: {
-        ...m,
-        scope: MissionScope.WEEKLY,
-      },
-    })
-  }
+  await prisma.mission.deleteMany({ where: { scope: MissionScope.WEEKLY } })
+  await prisma.mission.createMany({
+    data: weeklyMissions.map(m => ({ ...m, scope: MissionScope.WEEKLY })),
+  })
   console.log(`    ✅ Seeded ${weeklyMissions.length} weekly missions`)
 }

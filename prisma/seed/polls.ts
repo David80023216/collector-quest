@@ -124,10 +124,9 @@ export async function seedPolls(prisma: PrismaClient) {
     // Delete existing options and recreate
     await prisma.pollOption.deleteMany({ where: { pollId: poll.id } })
     await prisma.pollOption.createMany({
-      data: p.options.map((text, idx) => ({
+      data: p.options.map((text) => ({
         pollId: poll.id,
         text,
-        sortOrder: idx + 1,
       })),
     })
   }
