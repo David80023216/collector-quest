@@ -1,46 +1,20 @@
-import { getServerSession as nextAuthGetServerSession } from "next-auth"
-import { redirect } from "next/navigation"
-import { authOptions } from "@/lib/auth"
-import prisma from "@/lib/prisma"
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { redirect } from 'next/navigation'
+import { Session } from 'next-auth'
 
-export async function getServerSession() {
-  return nextAuthGetServerSession(authOptions)
+export interface AuthSession extends Session {
+  user: { id: string; name?: string | null; email?: string | null; image?: string | null; role?: string; plan?: string }
 }
 
-export async function requireAuth() {
-  const session = await getServerSession()
-
-  if (!session?.user) {
-    redirect("/login")
-  }
-
+export async function requireAuth(): Promise<AuthSession> {
+  const session = await getServerSession(authOptions) as AuthSession | null
+  if (!session?.user?.id) redirect('/login')
   return session
 }
 
-export async function requireAdmin() {
-  const session = await getServerSession()
-
-  if (!session?.user) {
-    redirect("/login")
-  }
-
-  if (session.user.role !== "ADMIN") {
-    throw new Error("Unauthorized: Admin access required")
-  }
-
+export async function requireAdmin(): Promise<AuthSession> {
+  const session = await requireAuth()
+  if (session.user.role !== 'ADMIN') redirect('/dashboard')
   return session
-}
-
-export async function getCurrentUser() {
-  const session = await getServerSession()
-
-  if (!session?.user?.id) {
-    return null
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  })
-
-  return user
 }
