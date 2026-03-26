@@ -512,6 +512,13 @@ model Drawing {
   prizeDescription String
   prizeValue       Int?
   winnerId         String?
+  cardImageUrl     String?
+  cardTitle        String?
+  cardPlayer       String?
+  cardYear         String?
+  cardBrand        String?
+  cardGrade        String?
+  cardNumber       String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
