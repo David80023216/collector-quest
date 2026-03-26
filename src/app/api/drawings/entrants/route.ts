@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import prisma from '@/lib/prisma'
 
 // GET /api/drawings/entrants?drawingId=xxx
 // Public — shows who has entered and how many tickets they've submitted
