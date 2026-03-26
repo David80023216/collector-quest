@@ -29,12 +29,12 @@ export default withAuth(
         }
 
         // Protected routes — require authentication
+        // Note: /prizes is intentionally PUBLIC so visitors can see what's up for grabs
         const protectedPaths = [
           '/dashboard',
           '/missions',
           '/rewards',
           '/community',
-          '/prizes',
           '/store',
           '/winners',
           '/leaderboards',
@@ -66,7 +66,6 @@ export const config = {
     '/missions/:path*',
     '/rewards/:path*',
     '/community/:path*',
-    '/prizes/:path*',
     '/store/:path*',
     '/winners/:path*',
     '/leaderboards/:path*',

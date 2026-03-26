@@ -225,8 +225,31 @@ export async function seedOther(prisma: PrismaClient) {
         description: 'The next monthly grand drawing! Earn entries all month for a shot at the grand prize.',
         drawDate,
         status: DrawingStatus.UPCOMING,
-        prizeDescription: 'Monthly Grand Prize',
+        prizeDescription: 'Patrick Mahomes II 2017 Panini Score #403 RC PSA 10',
         prizeValue: 250,
+        cardTitle: 'Patrick Mahomes II Rookie Card',
+        cardPlayer: 'Patrick Mahomes II',
+        cardYear: '2017',
+        cardBrand: 'Panini Score',
+        cardGrade: 'PSA 10',
+        cardNumber: '#403',
+        cardImageUrl: 'https://cdn-vault.fanaticscollect.com/2026/3/2/rm1/medium/v2814279_2021030106085391R_101.jpg',
+      },
+    })
+  } else if (!existingDrawing.cardPlayer) {
+    // Backfill card data on existing drawing that was seeded without it
+    await prisma.drawing.update({
+      where: { id: existingDrawing.id },
+      data: {
+        prizeDescription: 'Patrick Mahomes II 2017 Panini Score #403 RC PSA 10',
+        prizeValue: 250,
+        cardTitle: 'Patrick Mahomes II Rookie Card',
+        cardPlayer: 'Patrick Mahomes II',
+        cardYear: '2017',
+        cardBrand: 'Panini Score',
+        cardGrade: 'PSA 10',
+        cardNumber: '#403',
+        cardImageUrl: 'https://cdn-vault.fanaticscollect.com/2026/3/2/rm1/medium/v2814279_2021030106085391R_101.jpg',
       },
     })
   }
