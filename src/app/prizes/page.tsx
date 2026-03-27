@@ -5,10 +5,143 @@ import Button from '@/components/ui/Button'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 
+// ── Card Flip Component ──────────────────────────────────────────────────────
+function FlipCard({ imageUrl, player, year, brand, grade, cardNumber, cardTitle }: {
+  imageUrl?: string; player?: string; year?: string; brand?: string
+  grade?: string; cardNumber?: string; cardTitle?: string
+}) {
+  const [flipped, setFlipped] = useState(false)
+
+  return (
+    <div
+      className="relative cursor-pointer select-none"
+      style={{ width: 200, height: 280, perspective: 800 }}
+      onClick={() => setFlipped(f => !f)}
+      title="Click to flip"
+    >
+      {/* Glow */}
+      <div className="absolute -inset-3 bg-gradient-to-b from-yellow-400/20 to-amber-600/20 rounded-xl blur-md hover:blur-lg transition-all" />
+
+      {/* Flip container */}
+      <div
+        style={{
+          width: '100%', height: '100%',
+          position: 'relative',
+          transformStyle: 'preserve-3d',
+          transition: 'transform 0.6s cubic-bezier(0.4,0.2,0.2,1)',
+          transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
+      >
+        {/* ── FRONT ── */}
+        <div
+          style={{
+            position: 'absolute', width: '100%', height: '100%',
+            backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+          }}
+          className="rounded-lg overflow-hidden shadow-2xl border-4 border-amber-400/30 bg-slate-900"
+        >
+          {/* PSA top bar */}
+          <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-r from-blue-800 to-blue-900 flex items-center justify-center z-10">
+            <span className="text-white text-xs font-black tracking-widest">PSA</span>
+            <span className="ml-1 bg-amber-400 text-slate-900 text-xs font-black px-1.5 py-0.5 rounded">
+              {grade?.replace('PSA ', '') || '10'}
+            </span>
+          </div>
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={cardTitle || 'Prize Card'}
+              className="w-full h-full object-cover"
+              style={{ paddingTop: 28, paddingBottom: 20 }}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center" style={{ paddingTop: 28 }}>
+              <span className="text-5xl">🃏</span>
+            </div>
+          )}
+          {/* PSA bottom bar */}
+          <div className="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-r from-blue-800 to-blue-900" />
+          {/* Tap hint */}
+          <div className="absolute bottom-5 right-0 left-0 flex justify-center">
+            <span className="text-[9px] text-blue-200/50 tracking-widest">TAP TO FLIP</span>
+          </div>
+        </div>
+
+        {/* ── BACK ── */}
+        <div
+          style={{
+            position: 'absolute', width: '100%', height: '100%',
+            backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+          className="rounded-lg overflow-hidden shadow-2xl border-4 border-amber-400/30 bg-gradient-to-b from-blue-900 to-slate-900 flex flex-col"
+        >
+          {/* PSA top bar */}
+          <div className="h-7 bg-gradient-to-r from-blue-800 to-blue-900 flex items-center justify-center flex-shrink-0">
+            <span className="text-white text-xs font-black tracking-widest">PSA</span>
+          </div>
+          {/* Card details */}
+          <div className="flex-1 flex flex-col items-center justify-center p-3 gap-2">
+            <div className="w-12 h-12 rounded-full bg-amber-400 flex items-center justify-center shadow-lg shadow-amber-400/30">
+              <span className="text-slate-900 font-black text-lg">{grade?.replace('PSA ', '') || '10'}</span>
+            </div>
+            <p className="text-amber-400 font-black text-xs tracking-widest text-center">GEM MINT</p>
+            <div className="w-full h-px bg-blue-700/50 my-1" />
+            <p className="text-white font-bold text-xs text-center leading-tight">{player}</p>
+            <p className="text-blue-300 text-[10px] text-center">{year} {brand}</p>
+            {cardNumber && <p className="text-blue-300 text-[10px]">Card {cardNumber}</p>}
+            <div className="w-full h-px bg-blue-700/50 my-1" />
+            <p className="text-[9px] text-blue-400 text-center leading-tight">
+              This card has been authenticated<br/>and graded by PSA
+            </p>
+          </div>
+          {/* PSA bottom bar */}
+          <div className="h-5 bg-gradient-to-r from-blue-800 to-blue-900 flex-shrink-0" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Drawing Card (smaller, for other drawings) ────────────────────────────────
+function DrawingCard({ drawing, onSelect, isSelected }: { drawing: any; onSelect: () => void; isSelected: boolean }) {
+  return (
+    <div
+      onClick={onSelect}
+      className={`cursor-pointer rounded-xl border p-4 transition-all ${isSelected ? 'border-amber-500/60 bg-amber-500/5' : 'border-slate-700 bg-slate-800/60 hover:border-amber-500/30'}`}
+    >
+      <div className="flex items-center gap-3">
+        {drawing.cardImageUrl ? (
+          <div className="w-14 h-20 rounded overflow-hidden border border-slate-600 flex-shrink-0 bg-slate-900">
+            <img src={drawing.cardImageUrl} alt={drawing.cardTitle} className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="w-14 h-20 rounded border border-slate-600 flex-shrink-0 bg-slate-800 flex items-center justify-center">
+            <span className="text-2xl">🃏</span>
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-semibold mb-0.5 ${isSelected ? 'text-amber-400' : 'text-slate-300'}`}>{drawing.title}</p>
+          <p className="text-xs text-slate-400 truncate">{drawing.cardPlayer}</p>
+          <p className="text-xs text-slate-500">{drawing.cardYear} · {drawing.cardGrade}</p>
+          {drawing.drawDate && (
+            <p className="text-xs text-slate-500 mt-1">
+              🗓️ {new Date(drawing.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </p>
+          )}
+          {isSelected && <p className="text-[10px] text-amber-400 mt-1">← Currently viewing</p>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function PrizesPage() {
   const { data: session } = useSession()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [selectedIdx, setSelectedIdx] = useState(0)
 
   // Entry state
   const [ticketInput, setTicketInput] = useState(1)
@@ -30,7 +163,6 @@ export default function PrizesPage() {
     fetch('/api/prizes').then(r => r.json()).then(d => { setData(d); setLoading(false) })
   }, [])
 
-  // Load user ticket balance
   useEffect(() => {
     if (session?.user) {
       fetch('/api/user').then(r => r.json()).then(d => setUserTickets(d.entries ?? 0))
@@ -50,11 +182,11 @@ export default function PrizesPage() {
   }, [])
 
   useEffect(() => {
-    if (data) {
-      const drawingId = data.upcomingDrawings?.[0]?.id
-      loadEntrants(drawingId)
+    if (data?.upcomingDrawings?.length > 0) {
+      loadEntrants(data.upcomingDrawings[selectedIdx]?.id)
+      setEntryResult(null)
     }
-  }, [data, loadEntrants])
+  }, [data, selectedIdx, loadEntrants])
 
   async function enterDrawing(drawingId: string) {
     if (!ticketInput || ticketInput < 1) return
@@ -70,7 +202,7 @@ export default function PrizesPage() {
       setUserTickets(d.remainingTickets)
       setEntryResult({
         success: true,
-        message: `🎟️ You're in! ${ticketInput} ticket${ticketInput !== 1 ? 's' : ''} entered. You now have ${d.totalEntries} total ticket${d.totalEntries !== 1 ? 's' : ''} in this drawing.`,
+        message: `🎟️ You're in! ${ticketInput} ticket${ticketInput !== 1 ? 's' : ''} entered. You now have ${d.totalEntries} total.`,
         remainingTickets: d.remainingTickets,
         totalEntries: d.totalEntries,
       })
@@ -100,7 +232,8 @@ export default function PrizesPage() {
   if (loading) return <AppLayout><div className="text-center py-12 text-slate-400">Loading...</div></AppLayout>
 
   const { grandPrize, prizes, recentWinners, upcomingDrawings } = data ?? {}
-  const featured = upcomingDrawings?.[0]
+  const featured = upcomingDrawings?.[selectedIdx] ?? upcomingDrawings?.[0]
+  const otherDrawings = (upcomingDrawings ?? []).filter((_: any, i: number) => i !== selectedIdx)
   const myEntry = entrants.find((e: any) => e.name === session?.user?.name)
 
   return (
@@ -112,42 +245,31 @@ export default function PrizesPage() {
         </div>
 
         {/* ── FEATURED CARD SHOWCASE ── */}
-        {featured && (featured.cardImageUrl || featured.cardPlayer) && (
+        {featured && (
           <div className="relative overflow-hidden rounded-2xl border border-amber-500/40 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-yellow-600/10 pointer-events-none" />
             <div className="relative flex flex-col md:flex-row gap-0">
-              {/* Card Image */}
+              {/* Card Image with Flip */}
               <div className="md:w-72 flex-shrink-0 flex items-center justify-center p-8 bg-gradient-to-b from-slate-800/60 to-slate-900/60 md:border-r border-slate-700/50">
-                {featured.cardImageUrl ? (
-                  <div className="relative group">
-                    <div className="absolute -inset-3 bg-gradient-to-b from-yellow-400/20 to-amber-600/20 rounded-xl blur-md group-hover:blur-lg transition-all" />
-                    <div className="relative rounded-lg overflow-hidden shadow-2xl border-4 border-amber-400/30 bg-slate-900"
-                         style={{ width: 200, height: 280 }}>
-                      <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-r from-blue-800 to-blue-900 flex items-center justify-center z-10">
-                        <span className="text-white text-xs font-black tracking-widest">PSA</span>
-                        <span className="ml-1 bg-amber-400 text-slate-900 text-xs font-black px-1.5 py-0.5 rounded">{featured.cardGrade?.replace('PSA ', '') || '10'}</span>
-                      </div>
-                      <img src={featured.cardImageUrl} alt={featured.cardTitle || 'Prize Card'}
-                           className="w-full h-full object-cover" style={{ paddingTop: 28 }} />
-                      <div className="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-r from-blue-800 to-blue-900" />
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent rounded-lg pointer-events-none" />
-                  </div>
-                ) : (
-                  <div className="w-48 h-64 rounded-lg bg-gradient-to-b from-slate-700 to-slate-800 border border-slate-600 flex items-center justify-center">
-                    <span className="text-5xl">🃏</span>
-                  </div>
-                )}
+                <FlipCard
+                  imageUrl={featured.cardImageUrl}
+                  player={featured.cardPlayer}
+                  year={featured.cardYear}
+                  brand={featured.cardBrand}
+                  grade={featured.cardGrade}
+                  cardNumber={featured.cardNumber}
+                  cardTitle={featured.cardTitle}
+                />
               </div>
 
               {/* Card Details + Entry */}
               <div className="flex-1 p-6 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                          🎯 THIS MONTH'S PRIZE
+                          🎯 {featured.title?.toUpperCase()}
                         </span>
                         {featured.status === 'UPCOMING' && (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Drawing Open</span>
@@ -156,12 +278,6 @@ export default function PrizesPage() {
                       <h2 className="text-xl font-black text-slate-100 mt-2 leading-tight">{featured.cardPlayer || featured.title}</h2>
                       {featured.cardTitle && <p className="text-sm text-slate-400 mt-0.5">{featured.cardTitle}</p>}
                     </div>
-                    {featured.prizeValue > 0 && (
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-xs text-slate-500">Est. Value</p>
-                        <p className="text-2xl font-black text-amber-400">${featured.prizeValue.toLocaleString()}</p>
-                      </div>
-                    )}
                   </div>
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -251,40 +367,77 @@ export default function PrizesPage() {
                         )}
                       </div>
                       <Button
-                        onClick={() => enterDrawing(featured.id)}
+                        onClick={() => featured && enterDrawing(featured.id)}
                         loading={entering}
-                        disabled={entering || !userTickets || userTickets < 1}
-                        variant="primary"
-                        className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold whitespace-nowrap"
+                        disabled={!userTickets || userTickets < 1}
+                        className="flex-shrink-0"
                       >
-                        Enter {ticketInput > 1 ? `${ticketInput} Tickets` : 'Drawing'}
+                        Enter {ticketInput} 🎟️
                       </Button>
                     </div>
 
-                    {userTickets === 0 && (
-                      <p className="text-xs text-slate-400">
-                        No tickets yet —{' '}
-                        <Link href="/dashboard" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
-                          earn some on the dashboard
-                        </Link>
+                    {(!userTickets || userTickets === 0) && (
+                      <p className="text-xs text-slate-500">
+                        No tickets? <Link href="/missions" className="text-amber-400 hover:text-amber-300 underline">Complete missions</Link> to earn entries.
                       </p>
                     )}
                   </div>
                 ) : (
-                  <div className="flex flex-wrap gap-3">
-                    <Link href="/auth/signup">
-                      <Button variant="primary" className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold">
-                        🚀 Sign Up to Enter
-                      </Button>
-                    </Link>
-                    <a href="#free-entry">
-                      <Button variant="outline" className="border-slate-600 text-slate-300 hover:border-slate-500">
-                        Free Entry ↓
-                      </Button>
-                    </a>
+                  <div className="bg-slate-800/80 rounded-xl border border-slate-600/60 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-slate-200 mb-2">🎟️ Enter This Drawing</p>
+                    <div className="flex gap-2">
+                      <Link href="/login" className="flex-1">
+                        <Button className="w-full">Log In to Enter</Button>
+                      </Link>
+                      <Link href="/register" className="flex-1">
+                        <Button variant="outline" className="w-full">Sign Up Free</Button>
+                      </Link>
+                    </div>
+                    <div className="mt-3">
+                      <p className="text-xs text-slate-500 mb-2">Or enter without an account:</p>
+                      <form onSubmit={submitFreeEntry} className="space-y-2">
+                        <input
+                          type="text"
+                          placeholder="Your name"
+                          value={freeForm.name}
+                          onChange={e => setFreeForm(f => ({ ...f, name: e.target.value }))}
+                          required
+                          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email address"
+                          value={freeForm.email}
+                          onChange={e => setFreeForm(f => ({ ...f, email: e.target.value }))}
+                          required
+                          className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                        />
+                        {freeResult && (
+                          <p className={`text-xs ${freeResult.success ? 'text-emerald-400' : 'text-red-400'}`}>{freeResult.message}</p>
+                        )}
+                        <Button type="submit" loading={freeSubmitting} className="w-full">Submit Free Entry</Button>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── OTHER DRAWINGS ── */}
+        {(upcomingDrawings?.length ?? 0) > 1 && (
+          <div>
+            <h2 className="text-base font-semibold text-slate-300 mb-3">🗓️ All Active Drawings</h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(upcomingDrawings ?? []).map((d: any, i: number) => (
+                <DrawingCard
+                  key={d.id}
+                  drawing={d}
+                  isSelected={i === selectedIdx}
+                  onSelect={() => { setSelectedIdx(i); setEntryResult(null) }}
+                />
+              ))}
             </div>
           </div>
         )}
@@ -293,76 +446,53 @@ export default function PrizesPage() {
         <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
             <div>
-              <h2 className="font-semibold text-slate-100">Current Entrants</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {totalTickets} total ticket{totalTickets !== 1 ? 's' : ''} entered · {entrants.length} entrant{entrants.length !== 1 ? 's' : ''}
+              <h2 className="text-base font-semibold text-slate-100">🏅 Current Entrants</h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {entrants.length} entrant{entrants.length !== 1 ? 's' : ''} · {totalTickets.toLocaleString()} tickets total
               </p>
             </div>
             <button
               onClick={() => loadEntrants(featured?.id)}
-              className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+              disabled={entrantsLoading}
+              className="text-xs text-amber-400 hover:text-amber-300 disabled:opacity-50 transition-colors"
             >
-              {entrantsLoading ? '⏳' : '🔄'} Refresh
+              {entrantsLoading ? '↻ Refreshing…' : '↻ Refresh'}
             </button>
           </div>
 
-          {entrantsLoading ? (
-            <div className="py-8 text-center text-slate-500 text-sm">Loading entrants...</div>
+          {entrantsLoading && entrants.length === 0 ? (
+            <div className="py-8 text-center text-slate-500 text-sm">Loading entrants…</div>
           ) : entrants.length === 0 ? (
-            <div className="py-10 text-center">
-              <p className="text-3xl mb-2">🎟️</p>
-              <p className="text-slate-400 text-sm">No entries yet — be the first!</p>
-              {!session && (
-                <Link href="/auth/signup" className="text-amber-400 text-sm hover:text-amber-300 mt-1 block underline underline-offset-2">
-                  Sign up to enter
-                </Link>
-              )}
+            <div className="py-8 text-center text-slate-500 text-sm">
+              No entries yet — be the first! 🎯
             </div>
           ) : (
             <div className="divide-y divide-slate-700/60">
-              {entrants.map((e: any) => {
-                const isMe = session?.user?.name === e.name
+              {entrants.map((e: any, idx: number) => {
+                const isMe = e.name === session?.user?.name
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : null
+                const pct = totalTickets > 0 ? ((e.tickets / totalTickets) * 100) : 0
+
                 return (
-                  <div key={e.name + e.rank} className={`flex items-center gap-4 px-5 py-3 ${isMe ? 'bg-amber-500/5' : ''}`}>
-                    {/* Rank */}
-                    <span className={`w-7 text-center text-sm font-bold ${e.rank === 1 ? 'text-amber-400' : e.rank === 2 ? 'text-slate-300' : e.rank === 3 ? 'text-amber-600' : 'text-slate-500'}`}>
-                      {e.rank === 1 ? '🥇' : e.rank === 2 ? '🥈' : e.rank === 3 ? '🥉' : `#${e.rank}`}
+                  <div key={e.userId} className={`flex items-center gap-4 px-5 py-3 ${isMe ? 'bg-amber-500/5 border-l-2 border-amber-500' : ''}`}>
+                    <span className="w-6 text-center text-sm font-bold text-slate-500">
+                      {medal ?? `#${idx + 1}`}
                     </span>
-
-                    {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {e.image ? (
-                        <img src={e.image} alt={e.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-xs font-bold text-white">{e.name.charAt(0).toUpperCase()}</span>
-                      )}
-                    </div>
-
-                    {/* Name */}
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${isMe ? 'text-amber-400' : 'text-slate-100'}`}>
-                        {e.name} {isMe && <span className="text-xs">(you)</span>}
-                      </p>
-                    </div>
-
-                    {/* Odds bar */}
-                    <div className="hidden sm:flex items-center gap-2 w-32">
-                      <div className="flex-1 h-1.5 bg-slate-700 rounded-full overflow-hidden">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-sm font-medium truncate ${isMe ? 'text-amber-300' : 'text-slate-200'}`}>
+                          {e.name}{isMe ? ' (you)' : ''}
+                        </span>
+                        <span className="text-xs text-slate-500 flex-shrink-0">{e.tickets} ticket{e.tickets !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all ${isMe ? 'bg-amber-400' : 'bg-slate-500'}`}
-                          style={{ width: `${Math.max(e.pct, 2)}%` }}
+                          className="h-full rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 transition-all"
+                          style={{ width: `${Math.max(pct, 1)}%` }}
                         />
                       </div>
-                      <span className="text-xs text-slate-400 w-8 text-right">{e.pct}%</span>
                     </div>
-
-                    {/* Tickets */}
-                    <div className="text-right flex-shrink-0">
-                      <p className={`text-sm font-bold ${isMe ? 'text-amber-400' : 'text-slate-200'}`}>
-                        {e.tickets.toLocaleString()}
-                      </p>
-                      <p className="text-xs text-slate-500">ticket{e.tickets !== 1 ? 's' : ''}</p>
-                    </div>
+                    <span className="text-xs text-slate-400 flex-shrink-0 w-12 text-right">{pct.toFixed(1)}%</span>
                   </div>
                 )
               })}
@@ -370,83 +500,25 @@ export default function PrizesPage() {
           )}
         </div>
 
-        {/* ── GRAND PRIZE TIER ── */}
-        {grandPrize && (
-          <div className="bg-gradient-to-br from-amber-500/20 to-amber-600/10 rounded-2xl border border-amber-500/40 p-5">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div>
-                <p className="text-xs text-amber-400/70 mb-1">Current Prize Tier</p>
-                <p className="text-3xl font-black text-amber-400">
-                  ${grandPrize.currentTier.prizeValue > 0 ? grandPrize.currentTier.prizeValue.toLocaleString() : '???'}
-                </p>
-                <p className="text-slate-400 text-sm mt-0.5">{grandPrize.currentTier.label}</p>
-              </div>
-              {grandPrize.nextTier && (
-                <div className="text-right">
-                  <p className="text-xs text-slate-500">Next tier unlocks at</p>
-                  <p className="text-lg font-bold text-slate-300">${grandPrize.nextTier.prizeValue.toLocaleString()}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">🚀 {grandPrize.nextTier.subscribersNeeded} more PRO members needed</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* ── RECENT WINNERS ── */}
         {recentWinners?.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold text-slate-200 mb-3">Recent Winners 🎉</h2>
-            <div className="bg-slate-800 rounded-xl border border-slate-700 divide-y divide-slate-700">
-              {recentWinners.map((w: any) => (
-                <div key={w.id} className="flex items-center justify-between px-5 py-3">
+            <h2 className="text-base font-semibold text-slate-300 mb-3">🎉 Recent Winners</h2>
+            <div className="space-y-2">
+              {recentWinners.slice(0, 5).map((w: any) => (
+                <div key={w.id} className="bg-slate-800 rounded-xl border border-slate-700 px-4 py-3 flex items-center justify-between gap-4">
                   <div>
-                    <p className="font-medium text-sm text-slate-100">{w.displayName}</p>
-                    <p className="text-xs text-slate-400">{w.drawingTitle}</p>
+                    <p className="text-sm font-medium text-slate-200">{w.displayName}</p>
+                    <p className="text-xs text-slate-500">{w.prizeDescription} · {w.drawingTitle}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-amber-400 font-medium">{w.prizeDescription}</p>
-                    <p className="text-xs text-slate-500">{new Date(w.wonAt).toLocaleDateString()}</p>
-                  </div>
+                  <p className="text-xs text-slate-500 flex-shrink-0">
+                    {new Date(w.wonAt).toLocaleDateString()}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* ── FREE ENTRY ── */}
-        <div id="free-entry" className="bg-slate-800 rounded-xl border border-slate-700 p-6">
-          <h2 className="text-lg font-semibold text-slate-100 mb-1">Free Entry (No Purchase Necessary)</h2>
-          <p className="text-sm text-slate-400 mb-4">
-            Enter the drawing for free by mail or using this form. One entry per person per day.
-          </p>
-          {freeResult ? (
-            <div className={`rounded-lg px-4 py-3 text-sm ${freeResult.success ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
-              {freeResult.message}
-            </div>
-          ) : (
-            <form onSubmit={submitFreeEntry} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Your name"
-                value={freeForm.name}
-                onChange={e => setFreeForm(p => ({ ...p, name: e.target.value }))}
-                required
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              />
-              <input
-                type="email"
-                placeholder="your@email.com"
-                value={freeForm.email}
-                onChange={e => setFreeForm(p => ({ ...p, email: e.target.value }))}
-                required
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2.5 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
-              />
-              <Button type="submit" loading={freeSubmitting} variant="outline" className="w-full">
-                Submit Free Entry 🎟️
-              </Button>
-            </form>
-          )}
-        </div>
       </div>
     </AppLayout>
   )

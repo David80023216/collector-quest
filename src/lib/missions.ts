@@ -91,10 +91,14 @@ export async function getTodaysMissions(userId: string): Promise<MissionWithStat
   const allMissions = [...availableDaily, ...availableWeekly]
   const missionIds = allMissions.map((m) => m.id)
 
-  // Build unique key prefixes for today's completions
-  const uniqueKeyPrefixes = missionIds.map(
-    (mId) => `${userId}_${mId}_${today}`
-  )
+  // Build unique keys — weekly missions use week-scoped keys, daily use date-scoped
+  const missionMap = new Map(allMissions.map(m => [m.id, m]))
+  const uniqueKeyPrefixes = missionIds.map((mId) => {
+    const m = missionMap.get(mId)
+    return m?.scope === 'WEEKLY'
+      ? `${userId}_${mId}_week_${week}`
+      : `${userId}_${mId}_${today}`
+  })
 
   // Get completions for these missions today
   const completions = await prisma.missionCompletion.findMany({
@@ -147,8 +151,6 @@ export async function completeMission(
 }> {
   const { day, week } = getCurrentRotation()
   const today = getTodayString()
-  const uniqueKey = `${userId}_${missionId}_${today}`
-
   // 1. Verify mission exists and is available today
   const mission = await prisma.mission.findUnique({
     where: { id: missionId },
@@ -184,6 +186,11 @@ export async function completeMission(
       error: 'Mission is not available this week',
     }
   }
+
+  // Weekly missions use a week-scoped key so they can only be completed once per week
+  const uniqueKey = mission.scope === 'WEEKLY'
+    ? `${userId}_${missionId}_week_${week}`
+    : `${userId}_${missionId}_${today}`
 
   // 2. Check not already completed
   const existing = await prisma.missionCompletion.findUnique({
