@@ -35,12 +35,17 @@ const categoryInfo: Record<string, { icon: string; label: string; color: string 
 }
 
 // Category → link destination for "go do this" prompts
+// Missions WITH a link require the user to actually go do the activity.
+// Missions WITHOUT a link (LOGIN_CLAIM, STREAK) can be claimed directly.
 const categoryLink: Record<string, string> = {
-  TRIVIA:     '/trivia',
-  POLL:       '/community',
-  PACK:       '/packs',
-  SOCIAL:     '/community',
-  COMMUNITY:  '/community',
+  TRIVIA:            '/trivia',
+  POLL:              '/community',
+  POLL_VOTE:         '/community',
+  PACK:              '/packs',
+  SOCIAL:            '/community',
+  COMMUNITY:         '/community',
+  PRIZE_PAGE_VISIT:  '/prizes',
+  LEADERBOARD_VISIT: '/leaderboard',
 }
 
 export default function MissionsPage() {
@@ -232,7 +237,7 @@ function MissionSection({ title, subtitle, missions, completing, confirming, fee
               ) : isConfirming ? (
                 <div className="space-y-2">
                   <p className="text-xs text-purple-300 bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2">
-                    ⚠️ This weekly mission can only be claimed once this week. Did you actually complete the challenge?
+                    ⚠️ This weekly challenge can only be claimed once this week. Did you actually complete it?
                   </p>
                   <div className="flex gap-2">
                     <Button
@@ -251,25 +256,38 @@ function MissionSection({ title, subtitle, missions, completing, confirming, fee
                     </button>
                   </div>
                 </div>
-              ) : (
-                <div className="flex gap-2">
-                  {actionLink && !m.completed && (
+              ) : actionLink ? (
+                <div className="space-y-2">
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    👆 Do this activity first, then come back and hit Claim to earn your reward.
+                  </p>
+                  <div className="flex gap-2">
                     <Link href={actionLink} className="flex-1">
-                      <button className="w-full text-xs border border-slate-600 hover:border-amber-500/50 rounded-lg py-1.5 px-3 text-slate-400 hover:text-amber-400 transition-colors">
+                      <button className="w-full text-sm font-semibold bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 hover:border-amber-500/70 rounded-lg py-2 px-3 text-amber-400 transition-colors">
                         Go do it →
                       </button>
                     </Link>
-                  )}
-                  <Button
-                    size="sm"
-                    onClick={() => onComplete(m)}
-                    loading={completing === m.id}
-                    className={actionLink ? 'flex-1' : 'w-full'}
-                    variant={isWeekly ? 'outline' : 'primary'}
-                  >
-                    {isWeekly ? 'Claim Weekly Reward' : 'Complete'}
-                  </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => onComplete(m)}
+                      loading={completing === m.id}
+                      variant="outline"
+                      className="flex-shrink-0 text-slate-400"
+                    >
+                      Claim
+                    </Button>
+                  </div>
                 </div>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() => onComplete(m)}
+                  loading={completing === m.id}
+                  className="w-full"
+                  variant={isWeekly ? 'outline' : 'primary'}
+                >
+                  {isWeekly ? 'Claim Weekly Reward' : 'Claim Daily Reward'}
+                </Button>
               )}
             </div>
           )

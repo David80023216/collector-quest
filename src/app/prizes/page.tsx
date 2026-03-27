@@ -103,34 +103,67 @@ function FlipCard({ imageUrl, player, year, brand, grade, cardNumber, cardTitle 
   )
 }
 
-// ── Drawing Card (smaller, for other drawings) ────────────────────────────────
+// ── Drawing Selector Card (clickable to switch featured drawing) ──────────────
 function DrawingCard({ drawing, onSelect, isSelected }: { drawing: any; onSelect: () => void; isSelected: boolean }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
     <div
       onClick={onSelect}
-      className={`cursor-pointer rounded-xl border p-4 transition-all ${isSelected ? 'border-amber-500/60 bg-amber-500/5' : 'border-slate-700 bg-slate-800/60 hover:border-amber-500/30'}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`cursor-pointer rounded-xl border transition-all overflow-hidden ${
+        isSelected
+          ? 'border-amber-500/60 bg-gradient-to-br from-amber-500/5 to-slate-800 shadow-lg shadow-amber-500/10'
+          : 'border-slate-700 bg-slate-800/60 hover:border-amber-500/30 hover:bg-slate-800'
+      }`}
     >
-      <div className="flex items-center gap-3">
+      {/* Card image banner */}
+      <div className="relative h-32 bg-gradient-to-b from-slate-700 to-slate-800 overflow-hidden">
         {drawing.cardImageUrl ? (
-          <div className="w-14 h-20 rounded overflow-hidden border border-slate-600 flex-shrink-0 bg-slate-900">
-            <img src={drawing.cardImageUrl} alt={drawing.cardTitle} className="w-full h-full object-cover" />
-          </div>
+          <img
+            src={drawing.cardImageUrl}
+            alt={drawing.cardTitle || drawing.cardPlayer}
+            className="w-full h-full object-cover transition-transform duration-500"
+            style={{ transform: hovered ? 'scale(1.08)' : 'scale(1)' }}
+          />
         ) : (
-          <div className="w-14 h-20 rounded border border-slate-600 flex-shrink-0 bg-slate-800 flex items-center justify-center">
-            <span className="text-2xl">🃏</span>
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-4xl">🃏</span>
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <p className={`text-xs font-semibold mb-0.5 ${isSelected ? 'text-amber-400' : 'text-slate-300'}`}>{drawing.title}</p>
-          <p className="text-xs text-slate-400 truncate">{drawing.cardPlayer}</p>
-          <p className="text-xs text-slate-500">{drawing.cardYear} · {drawing.cardGrade}</p>
-          {drawing.drawDate && (
-            <p className="text-xs text-slate-500 mt-1">
-              🗓️ {new Date(drawing.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </p>
-          )}
-          {isSelected && <p className="text-[10px] text-amber-400 mt-1">← Currently viewing</p>}
-        </div>
+        {/* PSA grade badge */}
+        {drawing.cardGrade && (
+          <div className="absolute top-2 right-2 bg-blue-800/90 border border-blue-600/60 rounded px-1.5 py-0.5 flex items-center gap-1">
+            <span className="text-white text-[9px] font-black tracking-widest">PSA</span>
+            <span className="bg-amber-400 text-slate-900 text-[9px] font-black px-1 rounded">
+              {drawing.cardGrade.replace('PSA ', '')}
+            </span>
+          </div>
+        )}
+        {isSelected && (
+          <div className="absolute inset-0 bg-amber-500/10 flex items-end justify-center pb-1">
+            <span className="text-[10px] text-amber-400 font-semibold bg-slate-900/70 px-2 py-0.5 rounded-full">
+              ✓ Selected
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Card details */}
+      <div className="p-3">
+        <p className={`text-xs font-bold mb-0.5 truncate ${isSelected ? 'text-amber-400' : 'text-slate-200'}`}>
+          {drawing.cardPlayer || drawing.title}
+        </p>
+        <p className="text-[11px] text-slate-400 truncate">{drawing.cardYear} {drawing.cardBrand}</p>
+        {drawing.drawDate && (
+          <p className="text-[11px] text-slate-500 mt-1">
+            🗓️ {new Date(drawing.drawDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </p>
+        )}
+        <p className="text-[10px] text-amber-500/70 mt-1.5 font-medium">
+          {isSelected ? 'Viewing ↑' : 'Click to view →'}
+        </p>
       </div>
     </div>
   )
